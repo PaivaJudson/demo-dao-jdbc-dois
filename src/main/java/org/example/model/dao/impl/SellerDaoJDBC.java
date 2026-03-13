@@ -1,11 +1,24 @@
 package org.example.model.dao.impl;
 
+import org.example.db.DB;
+import org.example.db.DbException;
 import org.example.model.dao.SellerDao;
+import org.example.model.entities.Department;
 import org.example.model.entities.Seller;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 
 public class SellerDaoJDBC implements SellerDao {
+
+    private Connection connection;
+
+    public SellerDaoJDBC(Connection connection) {
+        this.connection = connection;
+    }
 
     @Override
     public void insert(Seller seller) {
@@ -23,8 +36,45 @@ public class SellerDaoJDBC implements SellerDao {
     }
 
     @Override
-    public SellerDao findById(Integer id) {
-        return null;
+    public Seller findById(Integer id) {
+
+        PreparedStatement preparedStatement = null;
+        ResultSet resultSet = null;
+
+        String str = "SELECT seller.*, department.Name as DepName "
+                    +"FROM seller INNER JOIN department "
+                    +"ON department.Id = seller.DepartmentId "
+                    +"WHERE seller.Id = ?";
+
+        try {
+            preparedStatement = connection.prepareStatement(str);
+            preparedStatement.setInt(1, id);
+            resultSet = preparedStatement.executeQuery();
+
+            if (resultSet.next()) {
+                Seller  seller = new Seller();
+                Department department = new Department();
+                department.setId(resultSet.getInt("DepartmentId"));
+                department.setName(resultSet.getString("DepName"));
+
+                seller.setId(resultSet.getInt("Id"));
+                seller.setName( resultSet.getString("Name"));
+                seller.setEmail(resultSet.getString("Email"));
+                seller.setBaseSalary(resultSet.getDouble("BaseSalary"));
+                seller.setBirthDate(resultSet.getDate("BirthDate"));
+                seller.setDepartment(department);
+
+                return seller;
+            }
+
+            return null;
+
+        } catch (SQLException e) {
+            throw new DbException(e.getMessage());
+        }finally {
+
+        }
+
     }
 
     @Override
